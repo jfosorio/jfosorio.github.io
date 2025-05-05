@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.42">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Juan F. Osorio">
+<meta name="dcterms.date" content="2014-06-09">
+<meta name="description" content="This is a notebook explaining the fundamentals of Sigma-Delta modulators as used in fractional-N PLLs. It compares the theoretical analysis with a implementation developed in Python.">
+
+<title>\Sigma-\Delta-modulator phase noise in fractional-N PLL’s – Phase Unlocked</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-6bd9cfa162949bde0a231f530c97869d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Phase Unlocked</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">A blog related with phase-locked loops phase noise and Python.</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="http://github.com/jfosorio"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://www.linkedin.com/in/juan-f-osorio-3a11a425"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title"><span class="math inline">\(\Sigma-\Delta\)</span>-modulator phase noise in fractional-N PLL’s</h1>
+                  <div>
+        <div class="description">
+          This is a notebook explaining the fundamentals of Sigma-Delta modulators as used in fractional-N PLLs. It compares the theoretical analysis with a implementation developed in Python.
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">Theoretical analysis</div>
+                <div class="quarto-category">Fundamentals</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Juan F. Osorio </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">June 9, 2014</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+<section id="library-imports" class="level2">
+<h2 class="anchored" data-anchor-id="library-imports">Library imports</h2>
+<div id="cell-2" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Array fast operation</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numpy <span class="im">import</span> (ones, pi, log10)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Signal processing routines</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> scipy.signal <span class="im">as</span> sig</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Plotting </span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib <span class="im">as</span> mpl</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>mpl.rcParams[<span class="st">'font.size'</span>] <span class="op">=</span> <span class="dv">12</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>mpl.rcParams[<span class="st">'figure.figsize'</span>]  <span class="op">=</span> (<span class="dv">9</span>,<span class="dv">6</span>)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>mpl.rcParams[<span class="st">'axes.grid'</span>] <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>mpl.rcParams[<span class="st">'axes.labelsize'</span>] <span class="op">=</span> <span class="st">'large'</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Add the path to the plldesigner module</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>sys.path.append(<span class="st">'../../..'</span>)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Print local directory</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Load modules for plldesign https://github.com/jfosorio/plldesigner</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plldesigner.pnoise <span class="im">as</span> pn</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plldesigner.sdmod <span class="im">as</span> sdmod</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>matplotlib inline</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>The first time that I needed to design a fractional-N PLL if took me quite some time to gain confidence over the model I was using to calculate the phase noise produced by the <span class="math inline">\(\Sigma\Delta\)</span>-modulators(SDM). The reason for that is that there are a couple of mathematical pitfalls that are difficult to avoid at first. Many times I tough that a reference code would have made my life much simpler. This is one of those topics where a notebook including both theory and code seems particular appealing.</p>
+<p>This entry expose first the SDM theory in the first section, the second section shows how a mash SDM works and explain the model in Python and the last section show the results and the comparison with the theoretical model. The SDM model is part of a more general package to design PLL’s that is available in github.</p>
+</section>
+<section id="linear-phase-noise-analysis-for-the-excess-of-phase-noise-at-the-output-of-a-fractional-divider-using-a-sigma-delta-modulator" class="level2">
+<h2 class="anchored" data-anchor-id="linear-phase-noise-analysis-for-the-excess-of-phase-noise-at-the-output-of-a-fractional-divider-using-a-sigma-delta-modulator">Linear phase noise analysis for the excess of phase noise at the output of a fractional divider using a <span class="math inline">\(\Sigma-\Delta\)</span> modulator</h2>
+<p>The circuit in figure 1 implements the fractional division of input <span class="math inline">\(f_{in}\)</span> by the fractional period defined by <span class="math inline">\(N+f(z)\)</span> using a SDM. As it is difficult to design a reliable circuit that divides a input frequency by a fractional number a integer divider with a division factor that is in average the desired value is used. This operation introduces unwanted phase changes in the output signal and we are interested the power spectral density of these disturbances.</p>
+<p><img src="images/fractional_divider.png" class="quarto-figure quarto-figure-center" alt="Fractional Divider" height="400"> <!-- <br>
+<img src="images/fractional_divider.png" alt="Fractional divider" height=400px/>
+<center> Figure 1. Topology of a fractional divider made with a SDM </center>
+<br> --></p>
+<p>The instantaneous frequency division of the divider in the figure is given by:</p>
+<p><span class="math display">\[\begin{equation}
+    N_{div}(z) = N+f(z)+H_{s}(z) \Delta_{q}(z),
+\end{equation}\]</span></p>
+<p>Where <span class="math inline">\(N\)</span> is that integer part of the division ratio, <span class="math inline">\(f(z)\)</span> is the fractional part, and <span class="math inline">\(H_s(z) \Delta_{q}(z)\)</span> is the instantaneous error made by a SDM of order m. The instantaneous noise of the SDM has two components <span class="math inline">\(\Delta_{q}(z)\)</span> is the quantization noise and <span class="math inline">\(H_s(z)\)</span> is the noise shaping transfer function of the SD modulator.</p>
+<p>The output frequency of the SD modulator is given by:</p>
+<p><span class="math display">\[\begin{equation}
+    f_{div}(z) = \frac{f_{in}}{N+f(z)+H_s(z) \Delta_{q}(z)},
+\end{equation}\]</span></p>
+<p>that can be simplified, using the approximation <span class="math inline">\(\frac{1}{1+x} \approx  1-x \: \text{for } x &lt;&lt; 1\)</span>, as:</p>
+<p><span class="math display">\[\begin{equation}
+    f_{div}(z) = \frac{f_{in}}{N+f(z)}\left(1 - \frac{H_s(z) \Delta_{q}(z)}{N+f(z)}\right),
+\end{equation}\]</span></p>
+<p>As <span class="math inline">\(\frac{f_{in}}{N+f(z)}\)</span> equals the target frequency, which in a PLL is the reference frequency <span class="math inline">\(f_{ref}\)</span>, the frequency error as a function of the target frequency equals:</p>
+<p><span class="math display">\[\begin{equation}
+    \Delta_{f_{div}}(z) = - f_{ref} \frac{ H_s(z) \Delta_{q}(z)}{N+f(z)}.
+\end{equation}\]</span></p>
+<p>The power spectral density of the quantization noise can be approximated using a similar assumption than the one used to calculate the spectrum of the quantization noise of a ADC. With a minimun steps size <span class="math inline">\(\delta\)</span> equals two one the power of the errro can be approximated by:</p>
+<p><span class="math display">\[\begin{equation}
+    \Delta_{q}^2 = \frac{1}{12} (step^2),
+\end{equation}\]</span></p>
+<p>this noise is uniformly distributed over the Nyquist bandwidth of the sampler, than in the case of a PLL is <span class="math inline">\(f_{ref}/2\)</span>, and it has a power spectral density given by:</p>
+<p><span class="math display">\[\begin{equation}
+    \Delta_{q}^2 = \frac{1}{6 f_{ref}} (step^2/Hz).
+\end{equation}\]</span></p>
+<p>The other aspect that needs to be accounted for, in order to find a close expression for the phase noise, is the shaping of the SDM, for Mash-1-1-1 SDM this is given by[1]:</p>
+<p><span class="math display">\[\begin{equation}
+    H_s(z)= (1-z^{-1})^m,
+\end{equation}\]</span></p>
+<p>where m is the SDM order.</p>
+<p>With this elements in place it is possible to have a better expression for the error made approximating the frequency, thus:</p>
+<p><span class="math display">\[\begin{equation}
+    \Delta_{f_{div}}(z)^2 =  \left|f_{ref} \frac{ (1-z^{-1})^m}{N+f(z)}\right|^2 \frac{1}{6 f_{ref}}.
+\end{equation}\]</span></p>
+<p>As it happens we are interesting in the phase, and this is calculated by integrating the last expression in the z-domain. Then we have:</p>
+<p><span class="math display">\[\begin{equation}
+\Phi_{div}(z) = \frac{2 \pi T_{ref} \Delta_{f_{div}}(z)}{1-z^{-1}},
+\end{equation}\]</span></p>
+<p>that putting everything together ends being:</p>
+<p><span class="math display">\[\begin{equation}
+\Phi_{div}(z)^2 = \frac{(2 \pi)^2}{6 f_{ref}} \frac{|1-z^{-1}|^{2(m-1)}}{(N+f(z))^2}(Rad^2/Hz)
+\end{equation}\]</span></p>
+<p>by definition <span class="math inline">\(\mathcal{L}(z)= \Phi_{div}(z)^2/2\)</span>, then:</p>
+<p><span class="math display">\[\begin{equation}
+    \mathcal{L}(z) = \frac{(2 \pi)^2}{12 f_{ref}} \frac{|1-z^{-1}|^{2(m-1)}}{(N+f(z))^2}(Rad^2/Hz),
+\end{equation}\]</span></p>
+<p>that can be replaced by a more useful expression where <span class="math inline">\(z\)</span> is replaced by <span class="math inline">\(e^{sT_{ref}}\)</span>. Calling the frequency offset <span class="math inline">\(f_m\)</span>, to emphasis that this is the frequency offset due to modulation, the result is:</p>
+<p><span class="math display">\[\begin{equation}
+  \mathcal{L}(f_m) = \frac{(2 \pi)^2}{12 f_{ref}} \frac{[2 sin(\pi f_m/ f_{ref})]^{2(m-1)}}{(N+f(z))^2}.
+\end{equation}\]</span></p>
+<p>As presented here this is the noise at the output of the divider, normally in previous references, [1] and [2], the noise is calculated at the input of the divider, but I consider this clearer. If the equivalent noise at the input of the divider needs to be calculated that can be done by simply multipling the last equation by <span class="math inline">\((N+f(z))^2\)</span>.</p>
+</section>
+<section id="using-the-pnoise-module-and-the-sdmod-to-simulate-a-sdm" class="level2">
+<h2 class="anchored" data-anchor-id="using-the-pnoise-module-and-the-sdmod-to-simulate-a-sdm">Using the pnoise module and the sdmod to simulate a SDM</h2>
+<p>Within the <a href="https://github.com/jfosorio/plldesigner">plldesigner</a> project two modules implement a class for adding pnoise frequency domain signals and creating SDM sequences.</p>
+<p>The sigma delta modulator is implemented by an algorithm that uses a counter that add every time the input word K and overflows when the value reaches MAX. MAX is the maximum value of the SDM register, that is: <span class="math inline">\(2^N-1\)</span>, for a register of N bits. The next code shows how a first order modulator is implemented:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> <span class="bu">round</span>(Nfloat<span class="op">*</span><span class="dv">2</span><span class="op">**</span>N)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> j <span class="kw">in</span> arange(<span class="dv">0</span>, L):</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    state <span class="op">=</span> state <span class="op">+</span> k[j <span class="op">-</span> <span class="dv">1</span>]</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> state <span class="op">&gt;</span> _maxvalue:</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        over <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        state <span class="op">-=</span> _maxvalue <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        over <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        sd[j] <span class="op">=</span> over</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The implementation of first, second and third order Sigma-delta modulators can be found in: <a href="https://github.com/jfosorio/plldesigner">plldesigner</a></p>
+<section id="creating-a-sdm-sequence-with-the-sdmod-module" class="level3">
+<h3 class="anchored" data-anchor-id="creating-a-sdm-sequence-with-the-sdmod-module">Creating a SDM sequence with the sdmod module</h3>
+<p>In order to create a 1-1-1 Mash sequence the gen_mash function was created in the sdmod module. The function has as inputs, the order of the modulator m, number of bits of the accumulator and the input vector <span class="math inline">\(k[n]\)</span>. The following code shows the sequence created by a SDM of third order.</p>
+<div id="cell-14" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameters </span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>NsdBits <span class="op">=</span> <span class="dv">19</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>fref <span class="op">=</span> <span class="fl">27.6e6</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>Tref <span class="op">=</span> <span class="fl">1.0</span><span class="op">/</span>fref</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a SDM sequency </span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>fracnum <span class="op">=</span> ((<span class="fl">0.253232</span><span class="op">*</span><span class="dv">2</span><span class="op">**</span>NsdBits)<span class="op">*</span>ones(<span class="dv">100000</span>)).astype(<span class="bu">int</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>sd, per <span class="op">=</span> sdmod.gen_mash(<span class="dv">3</span>,NsdBits,fracnum)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>ax.step(np.r_[<span class="dv">0</span>:<span class="dv">200</span>],sd[:<span class="dv">200</span>])<span class="op">;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'steps'</span>) <span class="co">#x label</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'$</span><span class="ch">\\</span><span class="st">Delta N$'</span>) <span class="co">#y label</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Mean value of the sequence: </span><span class="sc">{:2.6f}</span><span class="ch">\n</span><span class="st">"</span>.<span class="bu">format</span>(sd.mean()))</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Mean value of the sequence: 0.253220
+</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-3-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The phase error <span class="math inline">\(\phi_{out}[n]\)</span> can be calculated integrating the error in the frequency. Then the power spectrum density is estimated with the <a href="http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html">welch periodogram</a>.</p>
+<div id="cell-16" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Phi_er at the output equals \sum{\DeltaN*fref}*Tref</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>phi_div <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>pi<span class="op">*</span>(sd<span class="op">-</span>fracnum[<span class="dv">0</span>]<span class="op">/</span><span class="dv">2</span><span class="op">**</span>NsdBits).cumsum()</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate the spectrum</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>npoints <span class="op">=</span> <span class="dv">2</span><span class="op">**</span><span class="dv">7</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>f, Phi2_div <span class="op">=</span> sig.welch(phi_div, fref, window<span class="op">=</span><span class="st">'blackman'</span>, nperseg<span class="op">=</span>npoints)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>rbw <span class="op">=</span> fref<span class="op">/</span><span class="dv">2</span><span class="op">/</span>(<span class="bu">len</span>(f)<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>ind <span class="op">=</span> (f<span class="op">&gt;</span><span class="fl">1e5</span>) <span class="op">&amp;</span> (f<span class="op">&lt;</span><span class="fl">1e9</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> pn.Pnoise(f[ind],<span class="dv">10</span><span class="op">*</span>log10(Phi2_div[ind]<span class="op">/</span><span class="dv">2</span>), label<span class="op">=</span><span class="st">'simulated'</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co"># calcualte the L teorical</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>theory <span class="op">=</span> sdmod.L_mash_dB(<span class="dv">3</span>,fref)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>theory.fm <span class="op">=</span> f[ind]</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>theory.label <span class="op">=</span> <span class="st">'theoretical'</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate the integral value of the two</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'''</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="st">Integrated phase noise</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="st">======================</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="st">Theory: </span><span class="sc">{:2.3f}</span><span class="st"> (rad,rms)</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="st">Sim   : </span><span class="sc">{:2.3f}</span><span class="st"> (rad,rms)'''</span>.<span class="bu">format</span>(theory.integrate(),sim.integrate()))</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="co"># plot both specgturms</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>sim.plot(<span class="st">'o-'</span>, ax<span class="op">=</span>ax)</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> theory.plot(ax<span class="op">=</span>ax)</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>ax.legend(bbox_to_anchor<span class="op">=</span>(<span class="fl">1.05</span>, <span class="dv">1</span>), loc<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'RBW: </span><span class="sc">{:2.3f}</span><span class="st"> (KHz)'</span>.<span class="bu">format</span>(rbw<span class="op">/</span><span class="fl">1e3</span>))</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>val <span class="op">=</span> ax.set_ylim([<span class="op">-</span><span class="dv">140</span>,<span class="op">-</span><span class="dv">40</span>])</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Integrated phase noise
+======================
+Theory: 4.443 (rad,rms)
+Sim   : 4.427 (rad,rms)</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-4-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="non-linear-behavior-of-the-sigma-delta-modulator" class="level2">
+<h2 class="anchored" data-anchor-id="non-linear-behavior-of-the-sigma-delta-modulator">Non-linear behavior of the <span class="math inline">\(\Sigma-\Delta\)</span> modulator</h2>
+<p>The previous theory fails to predict spurs that can occur when the input is a rational number. This is demonstrated using the same SDM but with a input equivalent to 1/8. It is important to understand these spurs as they can fall in band after they are folded back by the non-linearity of the CP and the PFD.</p>
+<div id="cell-19" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fraction number</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>fracnum <span class="op">=</span> (<span class="dv">2</span><span class="op">/</span><span class="dv">8</span><span class="op">*</span><span class="dv">2</span><span class="op">**</span>NsdBits)<span class="op">*</span>ones(<span class="dv">100000</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Produce the SDM sequence</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>sd, per <span class="op">=</span> sdmod.gen_mash(<span class="dv">3</span>,NsdBits,fracnum)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate the phase error and its PSD</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>phi_div <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>pi<span class="op">*</span>(sd<span class="op">-</span>fracnum[<span class="dv">0</span>]<span class="op">/</span><span class="dv">2</span><span class="op">**</span>NsdBits).cumsum()</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>f, Phi2_div <span class="op">=</span> sig.welch(phi_div, fref, window<span class="op">=</span><span class="st">"blackman"</span>, nperseg<span class="op">=</span>npoints)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> pn.Pnoise(f[ind],<span class="dv">10</span><span class="op">*</span>log10(Phi2_div[ind]<span class="op">/</span><span class="dv">2</span>), label<span class="op">=</span><span class="st">'simulated'</span>)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a figure and axis using plt.subplots</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>ax.step(np.r_[<span class="dv">0</span>:<span class="dv">200</span>], sd[:<span class="dv">200</span>])</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'steps'</span>)  <span class="co"># x label</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'$</span><span class="ch">\\</span><span class="st">Delta N$'</span>)  <span class="co"># y label</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Mean value of the sequence: </span><span class="sc">{:2.5f}</span><span class="ch">\n</span><span class="st">"</span>.<span class="bu">format</span>(sd.mean()))</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Mean value of the sequence: 0.24999
+</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-5-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="cell-20" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>sd, per <span class="op">=</span> sdmod.gen_mash(<span class="dv">3</span>,NsdBits,fracnum)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-21" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Plot the power spectrum density</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>sim.plot(<span class="st">'o-'</span>, ax<span class="op">=</span>ax)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>theory.plot(ax<span class="op">=</span>ax)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>ax.legend(bbox_to_anchor<span class="op">=</span>(<span class="fl">1.05</span>, <span class="dv">1</span>), loc<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'RBW: </span><span class="sc">{:2.3f}</span><span class="st"> (KHz)'</span>.<span class="bu">format</span>(rbw<span class="op">/</span><span class="fl">1e3</span>))</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>ax.set_ylim([<span class="op">-</span><span class="dv">130</span>,<span class="op">-</span><span class="dv">40</span>])</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>ax.grid(<span class="va">True</span>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The spurs appearance and amplitude depend both of the input word and the initial state of the registers of the modulator [3]. It can be that initializing the first register of the first register of the SDM creates enough dithering to reduce the spurs The gen_mash accepts a fourth argument to initialize the mash registers. This argument is a tuple with a number of elements that equals the order of the SDM.</p>
+<div id="cell-23" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>sd_init, per <span class="op">=</span> sdmod.gen_mash(<span class="dv">3</span>,NsdBits,fracnum,(<span class="dv">1</span>,<span class="dv">0</span>,<span class="dv">0</span>))</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate the phase error and its PSD</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>phi_div <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>pi<span class="op">*</span>(sd_init<span class="op">-</span>fracnum[<span class="dv">0</span>]<span class="op">/</span><span class="dv">2</span><span class="op">**</span>NsdBits).cumsum()</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>f, Phi2_div <span class="op">=</span> sig.welch(phi_div, fref, window<span class="op">=</span><span class="st">"blackman"</span>, nperseg<span class="op">=</span>npoints)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>sim <span class="op">=</span> pn.Pnoise(f[ind],<span class="dv">10</span><span class="op">*</span>log10(Phi2_div[ind]<span class="op">/</span><span class="dv">2</span>), label<span class="op">=</span><span class="st">'simulated'</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co"># plot the sequence</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>pltpoints <span class="op">=</span> np.r_[<span class="dv">800</span>:<span class="dv">1000</span>]</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>ax.step(pltpoints,sd_init[pltpoints],label<span class="op">=</span><span class="st">'init=1'</span>)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>ax.step(pltpoints,sd[pltpoints], label<span class="op">=</span><span class="st">'init=0'</span>)</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'steps'</span>) <span class="co">#x label</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'$</span><span class="ch">\\</span><span class="st">Delta N$'</span>) <span class="co">#y label</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">'center left'</span>, bbox_to_anchor<span class="op">=</span>(<span class="fl">1.0</span>, <span class="fl">0.5</span>))</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Mean value of the sequence: </span><span class="sc">{:2.5f}</span><span class="ch">\n</span><span class="st">"</span>.<span class="bu">format</span>(sd.mean()))</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Mean value of the sequence: 0.24999
+</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-8-output-2.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="cell-24" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Plot the power spectrum density</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>sim.plot(<span class="st">'o-'</span>, ax<span class="op">=</span>ax)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>theory.plot(ax<span class="op">=</span>ax)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>ax.legend(bbox_to_anchor<span class="op">=</span>(<span class="fl">1.05</span>, <span class="dv">1</span>), loc<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">'RBW: </span><span class="sc">{:2.3f}</span><span class="st"> (KHz)'</span>.<span class="bu">format</span>(rbw<span class="op">/</span><span class="fl">1e3</span>))</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>ax.set_ylim([<span class="op">-</span><span class="dv">130</span>,<span class="op">-</span><span class="dv">40</span>])</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/cell-9-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p>With this entry I revisited the theory of SD modulators using a module written in Python. The fundamental aspects of Mash SDM modulators are explained and documented. To analyze the output I used the nice Scipy library. In this way, and with the help of the Ipython notebook, the linear theory of mash SDM and its limitations are well documented and results are easily replicated.</p>
+<p>This shows what would be the intention with the plldesigner toolkit. This a project that I have been developing and aims to add specific functionality to the numpy+scipy+ipython ecosystem to simulate and model PLL’s.</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<ol type="1">
+<li><p>B. Miller and R. J. Conley, “A multiple modulator fractional divider,” IEEE Transactions on Instrumentation and Measurement, vol.&nbsp;40, no. 3, pp.&nbsp;578–583, 1991.</p></li>
+<li><p>T. A. D. Riley, M. A. Copeland, and T. A. Kwasniewski, “Delta-sigma modulation in fractional-N frequency synthesis,” IEEE Journal of Solid-State Circuits, vol.&nbsp;28, no. 5, pp.&nbsp;553–559, May 1993.</p></li>
+<li><p>Kozak, M., Kale, I., “Rigorous analysis of delta-sigma modulators for fractional-N PLL frequency synthesis,” IEEE Transactions on Circuits and Systems I: Regular Papers 51, 1148–1162, 2004. (doi:10.1109/TCSI.2004.829308)</p></li>
+</ol>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/\/jfosorio\.github\.io\/");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
