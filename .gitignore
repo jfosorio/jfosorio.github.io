@@ -1,0 +1,11 @@
+# Quarto build artefacts
+_site/
+.quarto/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS cruft
+.DS_Store
+
+

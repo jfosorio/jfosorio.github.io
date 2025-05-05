@@ -1,0 +1,24 @@
+---
+title: "A blog related with phase-locked loops phase noise and Python."
+author: "Juan F Osorio"
+date: "2014-05-03"
+categories: [news]
+---
+
+<!-- ![](thumbnail.jpg) -->
+
+
+About a year ago, I came across Jake VanderPlas’s excellent Python blog, [Pythonic Perambulations](http://jakevdp.github.io). Since then, I’ve been considering writing a blog about PLL (Phase-Locked Loop) circuit design and modeling, using IPython notebooks to illustrate the often-misunderstood concepts of phase locking and phase noise. I also want to create a space for sharing opinions on newly published papers and for benchmarking PLLs.
+
+There are several reasons why Jake’s blog is so interesting, but above all it demonstrates the capabilities of [IPython notebooks](http://ipython.org/notebook.html) for exploring ideas in computation, mathematics, and physics. Jake also has an efficient method for publishing blog posts from IPython notebooks, using Pelican. If you’d like to learn more, I suggest reading these two posts:
+
+- [Blogging with IPython in Octopress](http://jakevdp.github.io/blog/2012/10/04/blogging-with-ipython/)
+- [Migrating from Octopress to Pelican](http://jakevdp.github.io/blog/2013/05/07/migrating-from-octopress-to-pelican/)
+
+I went so far as to copy Jake’s idea—and even copied his blog design—since I haven’t yet found a way to change the style while keeping it visually appealing (a task still on my to-do list).
+
+The literature on PLLs is extensive, so what does this blog hope to add? I’d like to incorporate new ideas developed by the scientific community regarding how we exchange scientific documentation, and use these to clarify PLL concepts. This documentation method—what I call “documentation+data+code”—goes beyond simply sharing papers. It also involves sharing the data behind the results, along with the code used to derive conclusions from that data. The benefits for transparency in science are fairly self-evident, and many people are working to make it even more effective by improving tools like IPython. If you’re interested, Fernando Perez’s talk, [Python & Science](http://www.pyvideo.org/video/2683/keynote-fernando-perez), provides an inspiring look at this topic.
+
+Another blog I find inspiring is Bengt E. Jonsson’s [Converter Passion](http://converterpassion.wordpress.com/about/). Jonsson discusses many significant points often buried in the large volume of papers on analog-to-digital converters. He also benchmarks various ADCs/DACs and fosters discussion around them. By comparison, there seems to be a shortage of engineering-focused forums and discussions online, especially when measured against the expanding scientific community’s dialogue.
+
+With that in mind, let’s get started!

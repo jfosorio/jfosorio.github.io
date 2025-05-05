@@ -1,0 +1,14 @@
+---
+title: "A blog related with phase-locked loops phase noise and Python. "
+image: profile.jpg
+about:
+  template: jolla
+  links:
+    - icon: linkedin
+      text: LinkedIn
+      href: https://www.linkedin.com/in/juan-f-osorio-3a11a425
+    - icon: github
+      text: Github
+      href: http://github.com/jfosorio
+
+---

@@ -1,0 +1,5 @@
+/* css styles */
+/* Example CSS override */
+.post-content, .entry-content {
+    text-align: left;
+  }
